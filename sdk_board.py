@@ -6,7 +6,6 @@ a 'nonet'); when solved, each group must contain
 exactly one occurrence of each of the
 symbol choices.
 """
-
 from typing import Sequence, List, Set
 from sdk_config import CHOICES, UNKNOWN, ROOT
 from sdk_config import NROWS, NCOLS
@@ -145,12 +144,14 @@ class Tile(Listenable):
         self.notify_all(TileEvent(self, EventKind.TileChanged))
         return True
 
+
 class Board(object):
     """A board has a matrix of tiles"""
 
     def __init__(self):
         """The empty board"""
         # Row/Column structure: Each row contains columns
+
         self.tiles: List[List[Tile]] = [ ]
         self.groups: List[List[Tile]] = []
         for row in range(NROWS):
@@ -225,7 +226,7 @@ class Board(object):
             leftovers = set(CHOICES)
             for item1 in groupset:
                 if item1.value in CHOICES:
-                    leftovers.remove(item1.value)
+                    leftovers.discard(item1.value)
             for i in leftovers:
                 candidatecount = 0
                 indexing = {}
@@ -239,8 +240,30 @@ class Board(object):
                     changed = True
         return changed
 
+    def min_choice_tile(self) -> Tile:
+        """Returns a tile with value UNKNOWN and
+        minimum number of candidates.
+        Precondition: There is at least one tile
+        with value UNKNOWN.
+        """
+        smallest = 10
+        indexing = {}
+        for row in self.tiles:
+            for item in row:
+                if item.value == '.' and len(item.candidates) < smallest:
+                    indexing['row'] = item.row
+                    indexing['col'] = item.col
+                    smallest = len(item.candidates)
+        return self.tiles[indexing['row']][indexing['col']]
+
 
     def solve(self):
+        """General solver; guess-and-check
+        combined with constraint propagation.
+        """
+        self.propagate()
+
+    def propagate(self):
         """Repeat solution tactics until we
         don't make any progress, whether or not
         the board is solved.
