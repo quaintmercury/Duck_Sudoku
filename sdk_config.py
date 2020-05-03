@@ -37,8 +37,3 @@ COLOR_BACKGROUND = "#ffffff"  # White
 COLOR_KNOWN = "#ccffcc"       # Green
 COLOR_UNKNOWN = "#ffffcc"     # Beige
 COLOR_WORKING = "#ffccff"     # Pink
-
-
-
-
-
