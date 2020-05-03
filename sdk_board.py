@@ -219,9 +219,34 @@ class Board(object):
                     changed = True
         return changed
 
+    def hidden_single(self):
+        changed = False
+        for groupset in self.groups:
+            leftovers = set(CHOICES)
+            for item1 in groupset:
+                if item1.value in CHOICES:
+                    leftovers.remove(item1.value)
+            for i in leftovers:
+                candidatecount = 0
+                indexing = {}
+                for item2 in groupset:
+                    if i in item2.candidates:
+                        candidatecount += 1
+                        indexing['rows'] = item2.row
+                        indexing['cols'] = item2.col
+                if candidatecount == 1:
+                    self.tiles[indexing['rows']][indexing['cols']].set_value(i)
+                    changed = True
+        return changed
+
+
     def solve(self):
-        """Solve the puzzle!"""
+        """Repeat solution tactics until we
+        don't make any progress, whether or not
+        the board is solved.
+        """
         progress = True
         while progress:
             progress = self.naked_single()
+            self.hidden_single()
         return
