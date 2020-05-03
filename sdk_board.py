@@ -10,7 +10,7 @@ from typing import Sequence, List, Set
 from sdk_config import CHOICES, UNKNOWN, ROOT
 from sdk_config import NROWS, NCOLS
 import enum
-
+import random
 import logging
 logging.basicConfig()
 log = logging.getLogger(__name__)
@@ -191,11 +191,18 @@ class Board(object):
 
     def __str__(self) -> str:
         """In Sadman Sudoku format"""
-        row_syms = []
+        return "\n".join(self.as_list())
+
+
+    def as_list(self) -> List[str]:
+        """Tile values in a format compatible with
+        set_tiles.
+        """
+        row_syms = [ ]
         for row in self.tiles:
             values = [tile.value for tile in row]
             row_syms.append("".join(values))
-        return "\n".join(row_syms)
+        return row_syms
 
     def set_tiles(self, tile_values: Sequence[Sequence[str]]):
         """Set the tile values a list of lists or a list of strings"""
@@ -247,14 +254,28 @@ class Board(object):
         with value UNKNOWN.
         """
         smallest = 10
-        indexing = {}
+        tileholder = []
         for row in self.tiles:
             for item in row:
-                if item.value == '.' and len(item.candidates) < smallest:
-                    indexing['row'] = item.row
-                    indexing['col'] = item.col
-                    smallest = len(item.candidates)
-        return self.tiles[indexing['row']][indexing['col']]
+                if item.value == '.' and len(item.candidates) <= smallest:
+                    if len(item.candidates) == smallest:
+                        tileholder.append(item)
+                    else:
+                        tileholder = []
+                        tileholder.append(item)
+                        smallest = len(item.candidates)
+        return random.choice(tileholder)
+
+    def is_complete(self) -> bool:
+        """None of the tiles are UNKNOWN.
+        Note: Does not check consistency; do that
+        separately with is_consistent.
+        """
+        for row in self.tiles:
+            for item in row:
+                if item.value == '.':
+                    return False
+        return True
 
 
     def solve(self):
@@ -262,6 +283,20 @@ class Board(object):
         combined with constraint propagation.
         """
         self.propagate()
+        if self.is_complete() and self.is_consistent():
+            return True
+        if not self.is_consistent():
+            return False
+        else:
+            savestate = self.as_list()
+            guesstile = self.min_choice_tile()
+            for i in guesstile.candidates:
+                guesstile.set_value(i)
+                if self.solve():
+                    return True
+                else:
+                    self.set_tiles(savestate)
+            return False
 
     def propagate(self):
         """Repeat solution tactics until we
